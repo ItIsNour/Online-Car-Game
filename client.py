@@ -1,7 +1,11 @@
+import pygame
+from network import Network
+from additionalFunctions import scale_image
 import random
 import time
 import pygame
-from additionalFunctions import scale_image
+
+
 
 pygame.init()
 
@@ -9,7 +13,7 @@ pygame.init()
 blueCar = pygame.image.load("images/blueCar.png")
 greenCar = pygame.image.load("images/greenCar.png")
 pinkCar = pygame.image.load("images/pinkCar.png")
-
+redCar = pygame.image.load("images/redCar.png")
 
 # Obstacles
 obsBus = pygame.image.load("images/obsBus.png")
@@ -24,28 +28,26 @@ borders_mask = pygame.mask.from_surface(borders)
 borderY = pygame.image.load("images/borderY.png")
 borderY_mask = pygame.mask.from_surface(borderY)
 
-
+startPage = pygame.image.load("images/startPage.png")
+window = pygame.image.load("images/window.png")
 road = scale_image(pygame.image.load("images/road.png"),1.005)
 
 finishLine = scale_image(pygame.image.load("images/finishLine.png"),1.1)
 
-startPage = pygame.image.load("images/startPage.png")
 
-window = pygame.image.load("images/window.png")
+
 width, height = window.get_width(), window.get_height()
 win = pygame.display.set_mode((width, height))
 
-# Window name
 pygame.display.set_caption("Client")
 
 # Variable that detects number of clients playing
 clientNumber = 0
 
-
-
-
 # The score to show finish line after
 win_score = 50
+
+
 
 
 
@@ -67,7 +69,7 @@ class ObstaclesLeft():
 
 
     def draw(self, win):
-            win.blit(self.img, (self.x, self.y))
+        win.blit(self.img, (self.x, self.y))
 
     def update(self):
         if self.score < 15:
@@ -168,34 +170,37 @@ class PlayerWon():
 
 
 class Car():
-    img = blueCar
-    # startPosition = (313, 350)
-    def __init__(self,x,y,car_vel):
-        self.img = self.img
+    # img = blueCar
+    def __init__(self, x, y,img):
+        self.img = img
         self.x = x
         self.y = y
-        self.car_vel = car_vel
-        self.acceleration = 0.3
-
+        self.rect = (x,y,50,50)
+        self.vel = 15
 
     def draw(self, win):
+        # pygame.draw.rect(win, self.color, self.rect)
         win.blit(self.img,(self.x,self.y))
 
     def move(self):
         keys = pygame.key.get_pressed()
 
         if keys[pygame.K_LEFT]:
-            self.x -= self.car_vel
+            self.x -= self.vel
 
         if keys[pygame.K_RIGHT]:
-            self.x += self.car_vel
+            self.x += self.vel
 
         if keys[pygame.K_UP]:
-            self.y -= self.car_vel
+            self.y -= self.vel
 
         if keys[pygame.K_DOWN]:
-            self.y += self.car_vel
+            self.y += self.vel
 
+        self.update()
+
+    def update(self):
+        self.rect = (self.x, self.y, 50, 50)
 
     def collide(self, mask, x=44, y=-2):
         car_mask = pygame.mask.from_surface(self.img)
@@ -219,6 +224,8 @@ class Car():
             self.y = 75
         if keys[pygame.K_DOWN] and self.y > 210:
             self.y = 400
+
+
 
 def game_Info(score,startTime):
     font = pygame.font.Font(None,25)
@@ -261,7 +268,16 @@ def Winner(show,obstacleScore):
 
 
 
-def redraw(win,images,car,roadx,roady, obstacle,obstacleR,won,show,finish,startTime):
+def read_pos(str):
+    str = str.split(",")
+    return int(str[0]), int(str[1])
+
+
+def make_pos(tup):
+    return str(tup[0]) + "," + str(tup[1])
+
+
+def redrawWindow(win,images,car, car2,roadx,roady, obstacle,obstacleR,won,show,startTime):
     for img, pos in images:
         win.blit(img, pos)
     win.blit(borders, [44, -2])
@@ -270,8 +286,9 @@ def redraw(win,images,car,roadx,roady, obstacle,obstacleR,won,show,finish,startT
     won.draw(win, show)
     obstacle.draw(win)
     obstacleR.draw(win)
-    game_Info(obstacle.score,startTime)
+    game_Info(obstacle.score, startTime)
     car.draw(win)
+    car2.draw(win)
     pygame.display.update()
 
 
@@ -279,36 +296,18 @@ def redraw(win,images,car,roadx,roady, obstacle,obstacleR,won,show,finish,startT
 images = [(borderY,(0,0)),(window,(0,0)),(road,(0,0))]
 
 
-def read_pos(str):
-    str = str.split(", ")
-    return  int(str[0]), int(str[1])
-
-def  make_pos(tup):
-    return str(tup[0] + "," + str(tup[1]))
-
-
-
-
+n = Network()
 
 
 def main():
     run = True
-    clock = pygame.time.Clock()
+
     roadx = 0
     roady = 0
     car_vel = 15
     road_vel = 15
-    max_vel = 50
-    acceleration = 0.4
 
-    # car_x = 345
-    # car_y = 400
-
-    car_x = 475
-    car_y = 400
-
-
-    obstacle_x = random.randrange(73,303)
+    obstacle_x = random.randrange(73, 303)
     obstacle_x_R = random.randrange(330, 620)
     obstacle_y = -100
 
@@ -320,21 +319,33 @@ def main():
     startTime = time.time()
 
 
-    car = Car(car_x,car_y,car_vel)
+    # n = Network()
+    startPos = read_pos(n.getPos())
+    car = Car(startPos[0],startPos[1],blueCar)
+    car2 = Car(475,400,greenCar)
+    # car3 = Car(275, 400, pinkCar)
+
+
     obstacle = ObstaclesLeft(obstacle_x, obstacle_y, road_vel,finish)
     obstacleR = ObstaclesRight(obstacle_x_R,obstacle_y,road_vel)
 
     won = PlayerWon(0,finishY,road_vel,show)
 
 
+    clock = pygame.time.Clock()
+
     while run:
         clock.tick(60)
+        p2Pos = read_pos(n.send(make_pos((car.x, car.y))))
+        car2.x = p2Pos[0]
+        car2.y = p2Pos[1]
+        car2.update()
 
         while not started:
             font = pygame.font.Font(None, 50)
             text = font.render("Press any key to start! ", True, 'white')
             win.blit(startPage, (0, 0))
-            win.blit(text, (185, (height/2)-200))
+            win.blit(text, (165, (height / 2) - 200))
             pygame.display.update()
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -348,22 +359,12 @@ def main():
             if event.type == pygame.QUIT:
                 run = False
                 break
-
         car.move()
         obstacle.update()
         obstacleR.update()
         won.update(show)
+        redrawWindow(win,images, car, car2,roadx,roady,obstacle,obstacleR,won,show,startTime)
 
-
-        redraw(win,images, car,roadx,roady,obstacle,obstacleR,won,show,finish,startTime)
-
-        keys = pygame.key.get_pressed()
-
-        # if keys[pygame.K_UP]:
-        #     road_vel = road_vel + acceleration
-        # else:
-        #     road_vel = road_vel - (acceleration*5)
-        #     road_vel = max(road_vel/2,0)
 
         if obstacle.score < 15:
             # road_vel = road_vel + acceleration*0.5
@@ -396,6 +397,8 @@ def main():
 
 
 
+
+
+
+
 main()
-
-
