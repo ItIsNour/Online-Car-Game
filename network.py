@@ -4,13 +4,13 @@ import socket
 class Network:
     def __init__(self):
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server = "192.168.1.10"
+        self.server = "YOURIPADDRESS"
         self.port = 5555
         self.addr = (self.server, self.port)
-        self.pos = self.connect()
+        self.info = self.connect()
 
-    def getPos(self):
-        return self.pos
+    def getInfo(self):
+        return self.info
 
     def connect(self):
         try:
