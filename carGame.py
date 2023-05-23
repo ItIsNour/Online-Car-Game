@@ -6,7 +6,6 @@ import pygame
 import re
 
 
-
 pygame.init()
 
 # Cars
@@ -47,8 +46,6 @@ clientNumber = 0
 
 # The score to show finish line after
 win_score = 50
-
-
 
 
 
