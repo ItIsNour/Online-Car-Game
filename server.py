@@ -73,8 +73,6 @@ def read_info_from_database(str):
 
 
 
-
-
 server = "YOURIPADDRESS"
 port = 5555
 
