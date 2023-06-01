@@ -1,8 +1,6 @@
 import socket
 import pickle
 
-
-
 # Client Networking
 
 class Network:
