@@ -22,7 +22,9 @@ class Car():
 
     def draw(self, win):
         pygame.draw.rect(win, self.color, self.rect)
+        # but cannot pickle surface
         # win.blit(self.img, (self.x, self.y))
+
 
     def move(self):
         keys = pygame.key.get_pressed()
