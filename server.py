@@ -9,7 +9,7 @@ import time
 import random
 
 
-
+# Mongodb database
 password = "pZu532OuO1urq4yV"
 connection_string = f"mongodb+srv://m:{password}@cluster0.lm8lset.mongodb.net/?retryWrites=true&w=majority"
 
