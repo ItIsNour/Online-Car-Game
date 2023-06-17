@@ -1,4 +1,5 @@
 import socket
+import ssl
 from _thread import *
 from car import Car
 import pickle
@@ -146,17 +147,33 @@ def databaseWrite(data, player):
             d.player.update_one({"_id": document["_id"]}, {"$set": {"messages": thisPlayer.messages}})
 
 
-server = "192.168.1.14"
-port = 5555
+# server = "192.168.1.14"
+# port = 5555
+#
+# s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+#
+# try:
+#     s.bind((server, port))
+# except socket.error as e:
+#     str(e)
+#
+# s.listen(5)
 
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+hostname = 'www.python.org'
+# PROTOCOL_TLS_CLIENT requires valid cert chain and hostname
+context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+context.load_verify_locations('path/to/cabundle.pem')
 
-try:
-    s.bind((server, port))
-except socket.error as e:
-    str(e)
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
+with s as sock:
+    with context.wrap_socket(sock, server_hostname=hostname) as ssock:
+        print(ssock.version())
 
-s.listen(5)
+
+
+
+
+
 print("Waiting for a connection, Server Started")
 
 # Make infoFromDb in this format [(0, 0, 418, 400, 3, 88, 500), (1, 1, 358, 160, 3, 88, 555), (2, 2, 478, 280, 3, 88, 477), (3, 3, 258, 260, 3, 88, 888)]
