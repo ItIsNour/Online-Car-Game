@@ -8,6 +8,7 @@ import pymongo.errors
 import sys
 import time
 import random
+# import certifi
 
 password = "pZu532OuO1urq4yV"
 connection_string = f"mongodb+srv://m:{password}@cluster0.lm8lset.mongodb.net/?retryWrites=true&w=majority"
@@ -159,15 +160,43 @@ def databaseWrite(data, player):
 #
 # s.listen(5)
 
-hostname = 'www.python.org'
-# PROTOCOL_TLS_CLIENT requires valid cert chain and hostname
-context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-context.load_verify_locations('path/to/cabundle.pem')
+# context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
 
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
-with s as sock:
-    with context.wrap_socket(sock, server_hostname=hostname) as ssock:
-        print(ssock.version())
+
+context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+
+context.verify_mode = ssl.CERT_REQUIRED
+# Load CA certificate with which the server will validate the client certificate
+certs_dir: str = f"{sys.path[0]}/certs/"
+
+
+# context.load_verify_locations("C:/Users/TEMP/Desktop/Car Game Server/certs/fullchain.pem")
+
+context.load_cert_chain(certfile=certs_dir + "server.cert", keyfile=certs_dir + "server.key")
+
+
+server = "d1stProjectCarGame.tentee.org"
+# server = "192.168.1.14"
+port = 8080
+
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+ssock = context.wrap_socket(s,server_side=True)
+print("hereeeeeeeeeeeeeeeeeeeeeeeeeee")
+ssock.bind((server, port))
+ssock.listen()
+print("listening")
+
+
+
+
+
+# s = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
+
+# with s as sock:
+#     sock.bind(('127.0.0.1', 8080))
+#     sock.listen(5)
+#     with context.wrap_socket(sock, server_side=True) as ssock:
+#         conn, addr = ssock.accept()
 
 
 
@@ -287,7 +316,7 @@ def startServer():
     global activePlayers
     while True:
 
-        conn, addr = s.accept()
+        conn, addr = ssock.accept()
         print("Connected to:", addr)
 
         # Get the IP address of the conencted player
