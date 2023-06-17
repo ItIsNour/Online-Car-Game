@@ -177,7 +177,7 @@ context.load_cert_chain(certfile=certs_dir + "server.cert", keyfile=certs_dir + 
 
 server = "d1stProjectCarGame.tentee.org"
 # server = "192.168.1.14"
-port = 8080
+port = 8081
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 ssock = context.wrap_socket(s,server_side=True)
