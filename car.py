@@ -19,12 +19,13 @@ class Car():
         self.obsR_x = obsR_x
         self.obsL_img = obsL_img
         self.obsR_img = obsR_img
+        self.reconnected = 0
+        self.time = 0
+        self.ready = False
 
     def draw(self, win):
         pygame.draw.rect(win, self.color, self.rect)
-        # but cannot pickle surface
         # win.blit(self.img, (self.x, self.y))
-
 
     def move(self):
         keys = pygame.key.get_pressed()

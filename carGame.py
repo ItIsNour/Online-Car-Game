@@ -1,9 +1,40 @@
-from network import Network
-# from additionalFunctions import scale_image
+from pygame.locals import *
 import random
 import time
 import pygame
-from pygame.locals import *
+from _thread import *
+
+# Client Networking
+import socket
+import pickle
+
+class Network:
+    def __init__(self):
+        self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server = "192.168.1.14"
+        self.port = 5555
+        self.addr = (self.server, self.port)
+        self.p = self.connect()
+
+    def getP(self):
+        return self.p
+
+    def connect(self):
+        try:
+            self.client.connect(self.addr)
+            return pickle.loads(self.client.recv(2048))
+        except:
+            pass
+
+    def send(self, data):
+        try:
+            self.client.send(pickle.dumps(data))
+            return pickle.loads(self.client.recv(2048))
+        except socket.error as e:
+            print(e)
+
+
+
 
 
 pygame.init()
@@ -191,7 +222,7 @@ class ObstaclesRight():
             elif self.obs == 3:
                 self.img = self.img2
 
-class PlayerWon():
+class FinishLine():
     img = finishLine
     img2 = road
 
@@ -229,6 +260,7 @@ def game_Info(score,startTime,car,car1,car2,car3,car4):
     win.blit(text,(82, height-50))
 
     text = font.render("Time: " + str(round(time.time()-startTime)) + "s", True, 'white')
+    car.time = round(time.time()-startTime)
     win.blit(text, (82, height-20))
 
     text = font.render("Active Players: " + str(car.activePlayers) , True, 'white')
@@ -294,6 +326,7 @@ def Winner(show,obstacleScore):
         win.blit(text, (260, y))
         pygame.display.update()
         time.sleep(2)
+        obstacleScore = 0
         main(inputText)
         # obstacleScore.finish = True
 
@@ -303,10 +336,12 @@ def bordersCollision(car,mask, x=44, y=-2):
     intersection_point = mask.overlap(car_mask, offset)
     return intersection_point
 
-def chatBox(event, car, started, inputText, text_input, text_input_render, button_image, button_rect):
+def chatBox(event, car, ready, inputText, text_input, text_input_render, button_image, button_rect):
     if event.type == KEYDOWN:
         if event.key == pygame.K_TAB:
-            started = True
+            ready = True
+            car.ready = True
+            # started = True
         elif event.key == K_BACKSPACE:
             text_input = text_input[:-1]
         elif event.key == K_RETURN:
@@ -316,9 +351,9 @@ def chatBox(event, car, started, inputText, text_input, text_input_render, butto
                 # Button released
                 button_image = button_hover
 
-                messages.append(inputText + " : " + text_input)
+                messages.append(car.nickname + " : " + text_input)
 
-                message = f"{inputText}:{text_input}"
+                message = f"{car.nickname}:{text_input}"
 
                 text_input = ""
         else:
@@ -347,7 +382,7 @@ def chatBox(event, car, started, inputText, text_input, text_input_render, butto
 
 
 
-    return started, text_input, text_input_render
+    return ready, text_input, text_input_render
 
 def drawChatBox(text_input_render, car1, car2, car3, car4, button_image,button_rect):
     global y_offset
@@ -449,6 +484,7 @@ def redrawWindow(win,images,car, car1,car2,car3,car4,roadx,roady, obstacle,obsta
 
 
 
+
 # In python 0,0 is top left
 images = [(borderY,(0,0)),(window,(0,0)),(road,(0,0))]
 
@@ -460,10 +496,19 @@ n = Network()
 text_input = ""
 text_input_render = text_area_font.render("", True, text_area_font_color)
 
-
+game_over = False
+finish = False
 
 
 def main(inputText):
+    global messages
+    global startTime
+    global text_input
+    global text_input_render
+    global game_over
+    global finish
+    global allReady
+
     run = True
 
     roadx = 0
@@ -478,26 +523,40 @@ def main(inputText):
     obstacle_y = -100
 
     started = False
-    finish = False
     show = False
+    ready = False
     finishY = -100
+    startTime = 0
+    allReady = False
 
-    startTime = time.time()
+    counter = 3  # Counter for countdown
+    counter_text_font = pygame.font.Font(None, 60)
+    start_text_font = pygame.font.Font(None, 60)
 
-    global text_input
-    global text_input_render
     text_input = ""
     text_input_render = text_area_font.render("", True, text_area_font_color)
 
     # n = Network()
     car = n.getP()
-    car.nickname = inputText
 
     obstacle = ObstaclesLeft(car.obsL_x[obs_x], obstacle_y, road_vel, finish, car.obsL_img[obs_img])
     obstacleR = ObstaclesRight(car.obsR_x[obs_x], obstacle_y, road_vel, car.obsR_img[obs_img])
 
-    won = PlayerWon(0, finishY, road_vel, show)
+    # Check if this was a new player
+    if car.reconnected == 0:
+        car.nickname = inputText
+        startTime = time.time()
+    else:
+        obstacle.score = car.score
+        messages = car.messages
+        startTime = time.time()-car.time
 
+    if game_over == True:
+        startTime = time.time()
+        obstacle.score = 0
+
+
+    won = FinishLine(0, finishY, road_vel, show)
     clock = pygame.time.Clock()
 
     while run:
@@ -506,7 +565,10 @@ def main(inputText):
         button_image = button_normal
         button_rect = pygame.Rect(1028, 327, button_width, button_height)
 
-        car.nickname = inputText
+        # # Check if this was a new player
+        # if car.reconnected == 0:
+        #     car.nickname = inputText
+
         car.score = obstacle.score
 
         p2, p3, p4, p5 = n.send(car)
@@ -538,12 +600,14 @@ def main(inputText):
 
         while not started:
             font = pygame.font.Font(None, 50)
-            text = font.render("Press tab key to start the game! ", True, 'white')
+            text = font.render("Press tab key if you are ready to start! ", True, 'white')
             win.blit(window,(0,0))
             win.blit(readyPage, (0, 0))
-            win.blit(text, (165, (height / 2) - 200))
+            win.blit(text, (80, (height / 2) - 200))
 
-            car.nickname = inputText
+            # Check if this was a new player
+            if car.reconnected == 0:
+                car.nickname = inputText
             p2, p3, p4, p5 = n.send(car)
             car.activePlayers = p2.activePlayers
             text = pygame.font.Font(None, 25).render("Active Players: " + str(car.activePlayers), True, 'white')
@@ -572,8 +636,6 @@ def main(inputText):
                 text = pygame.font.Font(None, 25).render("Hello! " + str(car.nickname), True, 'white')
                 win.blit(text, (950, 445))
 
-
-
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     run = False
@@ -581,15 +643,43 @@ def main(inputText):
                     break
                 else:
                     # Players can chat before they play the game
-                    started, text_input, text_input_render = chatBox(event, car, started, inputText, text_input, text_input_render, button_image, button_rect)
+                    ready, text_input, text_input_render = chatBox(event, car, ready, inputText, text_input, text_input_render, button_image, button_rect)
 
             drawChatBox(text_input_render, p2, p3, p4, p5, button_image,button_rect)
 
             players = [car, p2, p3, p4, p5]
+            readyPlayers = []
             for p in players:
                 p.messages = messages
+                # if p.ready == True:
+                #     if p not in readyPlayers:
+                #         readyPlayers.append(p)
 
-            print("ana bad5ol hna kda kda")
+            # readyPlayers = []
+            # for p in players:
+            #     if p.ready == True:
+            #         readyPlayers.append(p)
+
+            # if car.activePlayers == len(readyPlayers):
+            #     allReady = True
+
+
+            while counter > 0 and ready == True:
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        pygame.QUIT()
+                # Draw the counter
+                counter_text = font.render(str(counter), True, 'white')
+                counter_rect = counter_text.get_rect(center=(400 , 150))
+                # win.blit(chat, (500, 200))
+                car.active = 1
+                redrawWindow(win, images, car, p2, p3, p4, p5, roadx, roady, obstacle, obstacleR, won, show, startTime,button_image, button_rect)
+                win.blit(counter_text, counter_rect)
+                pygame.display.update()
+                pygame.time.delay(1000)  # 1-second delay
+                counter -= 1
+                allReady = False
+                started = True
 
 
         car.move()
@@ -630,15 +720,21 @@ def main(inputText):
 
         if ((obstacle.x - car.x) < 55 and abs(car.y - obstacle.y) <= 124):
             if ((car.x - obstacle.x) < 55 and abs(car.y - obstacle.y) <= 124):
+                game_over = True
+                car.active = 0
                 gameOver(finish, obstacle)
         if ((obstacleR.x - car.x) < 55 and abs(car.y - obstacleR.y) <= 124):
             if ((car.x - obstacleR.x) < 55 and abs(car.y - obstacleR.y) <= 124):
+                game_over = True
+                car.active = 0
                 gameOver(finish, obstacle)
 
         if obstacle.score >= win_score:
             show = True
             if abs(won.y - car.y) < won.img.get_height() / 11:
-                Winner(show, obstacle)
+                # finish = True
+                car.active = 0
+                Winner(show, obstacle.score)
                 print("finish")
 
         print(inputText," score : ",car.score)
@@ -646,6 +742,7 @@ def main(inputText):
 
         # if ((p.x - p2.x) < 55 and abs(p2.y - p.y) <= 124):
         #     if ((p2.x - p.x) < 55 and abs(p2.y - p.y) <= 124):
+        #         obstacle.score -= 1
         #         print("collided")
 
 
@@ -693,7 +790,4 @@ def startPageWindow():
 
 
 
-
 startPageWindow()
-
-
