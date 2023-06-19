@@ -19,9 +19,15 @@ class Car():
         self.obsR_x = obsR_x
         self.obsL_img = obsL_img
         self.obsR_img = obsR_img
+        self.obs_y = -100
         self.reconnected = 0
         self.time = 0
         self.ready = False
+        self.finish = False
+        self.obsOnScreenL = []
+        self.obsOnScreenR = []
+        self.appear = True
+        self.winner = False
 
     def draw(self, win):
         pygame.draw.rect(win, self.color, self.rect)
@@ -38,6 +44,7 @@ class Car():
 
         if keys[pygame.K_UP]:
             self.y -= self.vel*0.1
+            # self.obs_y += 15*1.2
 
         if keys[pygame.K_DOWN]:
             self.y += self.vel
@@ -49,6 +56,7 @@ class Car():
         self.y = self.y
         self.playerId = self.playerId
         self.rect = (self.x, self.y,0, 0)
+        self.obs_y = self.obs_y
 
     def bounce(self):
 
