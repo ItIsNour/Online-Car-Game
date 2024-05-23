@@ -33,13 +33,6 @@ python server.py
 3. Configure MongoDB connection strings in the server.py script.
 4. Run the server using the command mentioned above.
 
-## Contributors
-
-- [Your Name](https://github.com/yourusername)
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## What I Learned
 
